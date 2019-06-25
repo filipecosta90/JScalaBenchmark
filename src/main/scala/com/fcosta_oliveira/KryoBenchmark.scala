@@ -1,5 +1,6 @@
 package com.fcosta_oliveira
 
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 
 import com.esotericsoftware.kryo.Kryo
@@ -70,9 +71,8 @@ class KryoBenchmark {
 
   @Benchmark
   @OperationsPerInvocation(100000)
-  def testMethod(): Unit = {
+  def testDefaultSerializerSingleOutput(): Unit = {
     val output = new Output(buffersize)
-    var recordnum = 0
     var blockcount : Int = 0
     seq.grouped(blockSize).foreach { p =>
       output.setPosition(0)
@@ -83,7 +83,39 @@ class KryoBenchmark {
       output.close()
       blockcount+=1;
     }
-    LOG.info("serialized " + blockcount + " blocks, totalling " + output.total() + " bytes")
+  }
+
+
+  @Benchmark
+  @OperationsPerInvocation(100000)
+  def testDefaultSerializerOutputBlock(): Unit = {
+    val output = new Output(buffersize)
+    var blockcount : Int = 0
+    seq.grouped(blockSize).foreach { p =>
+      output.setPosition(0)
+      // convert Seq to Array since we need a Serializable
+      val block = p.toArray
+      kryo.writeObject(output, block)
+      //Flushes any buffered bytes and closes the underlying OutputStream, if any.
+      output.close()
+      blockcount+=1;
+    }
+  }
+
+  @Benchmark
+  @OperationsPerInvocation(100000)
+  def testDefaultSerializerByteArrayOutputStreamBlock(): Unit = {
+    var blockcount : Int = 0
+    seq.grouped(blockSize).foreach { p =>
+      val output = new Output(new ByteArrayOutputStream(), buffersize )
+      output.setPosition(0)
+      // convert Seq to Array since we need a Serializable
+      val block = p.toArray
+      kryo.writeObject(output, block)
+      //Flushes any buffered bytes and closes the underlying OutputStream, if any.
+      output.close()
+      blockcount+=1;
+    }
   }
 
 }
