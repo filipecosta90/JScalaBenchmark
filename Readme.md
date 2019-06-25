@@ -19,7 +19,8 @@ java -jar target/benchmarks.jar "KryoBenchmark"  -i 5 -wi 0 -f 1 -t 1 -jvmArgs="
 ```
 
 ```console
-# Run complete. Total time: 00:13:02
+(...)
+# Run complete. Total time: 00:38:09
 
 REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
 why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
@@ -27,7 +28,11 @@ experiments, perform baseline and negative tests that provide experimental contr
 the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
 Do not assume the numbers tell you what you want them to tell.
 
-Benchmark                 (blockSize)  (buffersize)  (colsize)  (ncols)   Mode  Cnt   Score   Error   Units
-KryoBenchmark.testMethod         1000             1         36      400  thrpt    5  30.228 ± 2.328  ops/ms
-KryoBenchmark.testMethod         1000             1         36      400   avgt    5   0.033 ± 0.002   ms/op
+Benchmark                                                      (blockSize)  (buffersize)  (colsize)  (ncols)   Mode  Cnt   Score   Error   Units
+KryoBenchmark.testDefaultSerializerByteArrayOutputStreamBlock         1000             1         36      400  thrpt    5  24.359 ± 2.481  ops/ms
+KryoBenchmark.testDefaultSerializerOutputBlock                        1000             1         36      400  thrpt    5  27.675 ± 0.196  ops/ms
+KryoBenchmark.testDefaultSerializerSingleOutput                       1000             1         36      400  thrpt    5  30.035 ± 0.405  ops/ms
+KryoBenchmark.testDefaultSerializerByteArrayOutputStreamBlock         1000             1         36      400   avgt    5   0.041 ± 0.004   ms/op
+KryoBenchmark.testDefaultSerializerOutputBlock                        1000             1         36      400   avgt    5   0.037 ± 0.001   ms/op
+KryoBenchmark.testDefaultSerializerSingleOutput                       1000             1         36      400   avgt    5   0.032 ± 0.002   ms/op
 ```
