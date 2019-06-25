@@ -1,26 +1,25 @@
 package com.fcosta_oliveira
 
-import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Output
 import org.apache.commons.lang3.StringUtils
+import org.apache.spark.sql.Row
 import org.openjdk.jmh.Main
 import org.openjdk.jmh.annotations._
 import org.slf4j.{Logger, LoggerFactory}
-
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Array(Mode.AverageTime, Mode.Throughput))
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Measurement( time = 60 )
-class KryoBenchmark {
+class KryoRowBenchmark {
 
   val kryo = new Kryo
   val records: Int = 100000
   private val LOG: Logger = LoggerFactory.getLogger(classOf[Main])
-  var seq: Seq[Array[Any]] = Seq(Array())
+  var seq: Seq[Row] = Seq(Row())
   // colsize
   @Param(Array("36"))
   var colsize: Int = _
@@ -43,22 +42,18 @@ class KryoBenchmark {
   // A full run means a full "fork" including all warmup and benchmark iterations.
   @Setup(Level.Trial)
   def setup(): Unit = {
-    kryo.register(classOf[Array[Array[Any]]])
-    kryo.register(classOf[Seq[Array[Any]]])
-    kryo.register(classOf[Array[Any]])
-    kryo.register(classOf[Seq[Any]])
-
+    kryo.register(classOf[org.apache.spark.sql.Row])
+    kryo.addDefaultSerializer(classOf[org.apache.spark.sql.Row], classOf[RowSerializer])
     var recordsPos = 0;
     val colPos = 0
     data = StringUtils.repeat("x", colsize)
     LOG.info("started generating sequence data")
     for (recordsPos <- 1 to records) {
-      var recordArraY = new Array[Any](ncols * 2)
+      var row : Row = Row()
       for (colPos <- 1 to ncols) {
-        recordArraY(colPos * 2 - 2) = colPos
-        recordArraY(colPos * 2 - 1) = data
+        row.+(data)
       }
-      seq ++= Seq(recordArraY)
+      seq ++= Seq(row)
     }
     LOG.info("ended generating sequence data")
 
@@ -75,44 +70,11 @@ class KryoBenchmark {
   def testDefaultSerializerSingleOutput(): Unit = {
     val output = new Output(buffersize)
     var blockcount : Int = 0
-    seq.grouped(blockSize).foreach { p =>
+    seq.grouped(blockSize).foreach { row =>
       output.setPosition(0)
       // convert Seq to Array since we need a Serializable
-      val block = p.toArray
-      kryo.writeObject(output, block)
-      //Flushes any buffered bytes and closes the underlying OutputStream, if any.
-      output.close()
-      blockcount+=1;
-    }
-  }
 
-
-  @Benchmark
-  @OperationsPerInvocation(100000)
-  def testDefaultSerializerOutputBlock(): Unit = {
-    var blockcount : Int = 0
-    seq.grouped(blockSize).foreach { p =>
-      val output = new Output(buffersize)
-      output.setPosition(0)
-      // convert Seq to Array since we need a Serializable
-      val block = p.toArray
-      kryo.writeObject(output, block)
-      //Flushes any buffered bytes and closes the underlying OutputStream, if any.
-      output.close()
-      blockcount+=1;
-    }
-  }
-
-  @Benchmark
-  @OperationsPerInvocation(100000)
-  def testDefaultSerializerByteArrayOutputStreamBlock(): Unit = {
-    var blockcount : Int = 0
-    seq.grouped(blockSize).foreach { p =>
-      val output = new Output(new ByteArrayOutputStream(), buffersize )
-      output.setPosition(0)
-      // convert Seq to Array since we need a Serializable
-      val block = p.toArray
-      kryo.writeObject(output, block)
+      kryo.writeObject(output, row)
       //Flushes any buffered bytes and closes the underlying OutputStream, if any.
       output.close()
       blockcount+=1;
