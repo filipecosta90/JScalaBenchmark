@@ -89,9 +89,9 @@ class KryoBenchmark {
   @Benchmark
   @OperationsPerInvocation(100000)
   def testDefaultSerializerOutputBlock(): Unit = {
-    val output = new Output(buffersize)
     var blockcount : Int = 0
     seq.grouped(blockSize).foreach { p =>
+      val output = new Output(buffersize)
       output.setPosition(0)
       // convert Seq to Array since we need a Serializable
       val block = p.toArray
