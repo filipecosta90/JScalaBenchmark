@@ -20,7 +20,7 @@ class RowSerializer extends Serializer[org.apache.spark.sql.Row] {
         case FloatType => output.writeFloat(t.getAs[Float](field.name))
         case DoubleType => output.writeDouble(t.getAs[Double](field.name))
         case StringType => output.writeString(t.getAs[String](field.name))
-        case _ => kryo.writeClassAndObject(output, t.getAs(field.name))
+        //case _ => kryo.writeClassAndObject(output, t.getAs(field.name))
       }
     })
   }
