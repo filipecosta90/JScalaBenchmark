@@ -3,12 +3,11 @@ package com.fcosta_oliveira
 import java.util.concurrent.TimeUnit
 
 import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Output
+import com.esotericsoftware.kryo.io.{Input, Output}
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.{GenericRow, GenericRowWithSchema}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.objenesis.strategy.StdInstantiatorStrategy
 import org.openjdk.jmh.Main
 import org.openjdk.jmh.annotations._
 import org.slf4j.{Logger, LoggerFactory}
@@ -22,6 +21,8 @@ class KryoRowBenchmark {
   val kryo = new Kryo
   val records: Int = 50000
   val seq: Array[Row] = new Array[Row](records)
+  val recoveredSeq: Array[Row] = new Array[Row](records)
+  var blocks: Array[Array[Byte]] = Array(Array())
   private val LOG: Logger = LoggerFactory.getLogger(classOf[Main])
   // colsize
   @Param(Array("36"))
@@ -47,10 +48,18 @@ class KryoRowBenchmark {
     kryo.addDefaultSerializer(classOf[Row], classOf[RowSerializer])
     kryo.register(classOf[Row])
     kryo.register(classOf[GenericRow])
+    kryo.register(classOf[Array[Row]])
+    kryo.register(classOf[Array[GenericRow]])
 
-    kryo.getInstantiatorStrategy.asInstanceOf[Kryo.DefaultInstantiatorStrategy].setFallbackInstantiatorStrategy(new StdInstantiatorStrategy)
+    if (buffersize < ncols * colsize * blockSize) {
+      LOG.warn("Setting buffersize to " + (ncols * colsize * blockSize * 2) + " since " + buffersize + " was too small ")
+      buffersize = ncols * colsize * blockSize * 2
+    }
 
+    val totalNumberBlocks = Integer.divideUnsigned(records, blockSize)
+    LOG.info("Generating a total of " + totalNumberBlocks + " blocks, each with " + blockSize + " rows")
 
+    blocks = new Array[Array[Byte]](totalNumberBlocks)
     data = StringUtils.repeat("x", colsize)
     LOG.info("started generating sequence data")
     for (recordsPos <- 0 to records - 1) {
@@ -67,10 +76,22 @@ class KryoRowBenchmark {
     }
     LOG.info("ended generating sequence data")
 
-    if (buffersize < ncols * colsize * blockSize) {
-      LOG.warn("Setting buffersize to " + (ncols * colsize * blockSize * 2) + " since " + buffersize + " was too small ")
-      buffersize = ncols * colsize * blockSize * 2
+    LOG.info("started generating blocks data")
+    val output = new Output(buffersize)
+    var blockNumber = 0
+    seq.grouped(blockSize).foreach(arrayRow => {
+      output.setPosition(0)
+      arrayRow.foreach(row => {
+        kryo.writeObject(output, row)
+
+      })
+      output.close()
+      blocks(blockNumber) = output.toBytes
+      blockNumber += 1
     }
+    )
+    LOG.info("ended generating blocks data")
+
 
   }
 
@@ -79,16 +100,53 @@ class KryoRowBenchmark {
   @OperationsPerInvocation(50000)
   def testDefaultSerializerSingleOutput(): Unit = {
     val output = new Output(buffersize)
-    var blockcount: Int = 0
+    var blockNumber = 0
     seq.grouped(blockSize).foreach(arrayRow => {
       output.setPosition(0)
       arrayRow.foreach(row => {
         kryo.writeObject(output, row)
       })
       output.close()
+      blocks(blockNumber) = output.toBytes
+      blockNumber += 1
+    }
+    )
+  }
+
+
+  @Benchmark
+  @OperationsPerInvocation(50000)
+  def testDefaultSerializerReaderSingleInput(): Unit = {
+    var rowNumber = 0
+    blocks.grouped(blockSize).foreach(arrayRow => {
+      arrayRow.foreach(bytes => {
+        val input = new Input(bytes)
+        val row = kryo.readObject(input, classOf[Row])
+        recoveredSeq(rowNumber) = row
+        //uncomment this to se recovered row
+        //LOG.info(recoveredSeq(rowNumber).toString())
+        rowNumber += 1
+      }
+      )
+    }
+    )
+  }
+
+  /*
+  @Benchmark
+  @OperationsPerInvocation(50000)
+  def testSerializerArrayRows(): Unit = {
+    val output = new Output(buffersize)
+    var blockcount: Int = 0
+    seq.grouped(blockSize).foreach(arrayRow => {
+      output.setPosition(0)
+      kryo.writeObject(output, arrayRow)
+      output.close()
       blockcount += 1;
     }
     )
   }
+
+   */
 
 }

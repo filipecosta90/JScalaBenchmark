@@ -14,7 +14,7 @@ import org.slf4j.{Logger, LoggerFactory}
 @State(Scope.Benchmark)
 @BenchmarkMode(Array(Mode.AverageTime, Mode.Throughput))
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Measurement( time = 60 )
+@Measurement( time = 10 )
 class KryoBenchmark {
 
   val kryo = new Kryo
