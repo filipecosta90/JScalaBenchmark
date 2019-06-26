@@ -20,7 +20,7 @@ import org.slf4j.{Logger, LoggerFactory}
 class KryoRowBenchmark {
 
   val kryo = new Kryo
-  val records: Int = 100000
+  val records: Int = 50000
   val seq: Array[Row] = new Array[Row](records)
   private val LOG: Logger = LoggerFactory.getLogger(classOf[Main])
   // colsize
@@ -76,7 +76,7 @@ class KryoRowBenchmark {
 
 
   @Benchmark
-  @OperationsPerInvocation(100000)
+  @OperationsPerInvocation(50000)
   def testDefaultSerializerSingleOutput(): Unit = {
     val output = new Output(buffersize)
     var blockcount: Int = 0
