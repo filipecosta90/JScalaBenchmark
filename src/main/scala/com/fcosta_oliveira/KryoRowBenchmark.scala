@@ -3,7 +3,7 @@ package com.fcosta_oliveira
 import java.util.concurrent.TimeUnit
 
 import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.{Input, Output}
+import com.esotericsoftware.kryo.io.Output
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.{GenericRow, GenericRowWithSchema}
@@ -45,7 +45,14 @@ class KryoRowBenchmark {
   // A full run means a full "fork" including all warmup and benchmark iterations.
   @Setup(Level.Trial)
   def setup(): Unit = {
-    kryo.addDefaultSerializer(classOf[Row], classOf[RowSerializer])
+
+    val structfields = new Array[StructField](ncols)
+    for (colPos <- 0 to ncols - 1) {
+      structfields(colPos) = StructField("col" + colPos, StringType)
+    }
+    var schema = StructType(structfields)
+
+    kryo.addDefaultSerializer(classOf[Row], new RowSerializer(schema))
     kryo.register(classOf[Row])
     kryo.register(classOf[GenericRow])
     kryo.register(classOf[Array[Row]])
@@ -64,12 +71,9 @@ class KryoRowBenchmark {
     LOG.info("started generating sequence data")
     for (recordsPos <- 0 to records - 1) {
       val cols = new Array[Any](ncols)
-      val structfields = new Array[StructField](ncols)
       for (colPos <- 0 to ncols - 1) {
         cols(colPos) = data
-        structfields(colPos) = StructField("col" + colPos, StringType)
       }
-      var schema = StructType(structfields)
       val newRow: Row = new GenericRowWithSchema(cols, schema)
 
       seq(recordsPos) = newRow
@@ -113,40 +117,23 @@ class KryoRowBenchmark {
     )
   }
 
-
-  @Benchmark
-  @OperationsPerInvocation(50000)
-  def testDefaultSerializerReaderSingleInput(): Unit = {
-    var rowNumber = 0
-    blocks.grouped(blockSize).foreach(arrayRow => {
-      arrayRow.foreach(bytes => {
-        val input = new Input(bytes)
-        val row = kryo.readObject(input, classOf[Row])
-        recoveredSeq(rowNumber) = row
-        //uncomment this to se recovered row
-        //LOG.info(recoveredSeq(rowNumber).toString())
-        rowNumber += 1
-      }
-      )
-    }
-    )
-  }
-
-  /*
-  @Benchmark
-  @OperationsPerInvocation(50000)
-  def testSerializerArrayRows(): Unit = {
-    val output = new Output(buffersize)
-    var blockcount: Int = 0
-    seq.grouped(blockSize).foreach(arrayRow => {
-      output.setPosition(0)
-      kryo.writeObject(output, arrayRow)
-      output.close()
-      blockcount += 1;
-    }
-    )
-  }
-
-   */
+//
+//  @Benchmark
+//  @OperationsPerInvocation(50000)
+//  def testDefaultSerializerReaderSingleInput(): Unit = {
+//    var rowNumber = 0
+//    blocks.grouped(blockSize).foreach(arrayRow => {
+//      arrayRow.foreach(bytes => {
+//        val input = new Input(bytes)
+//        val row = kryo.readObject(input, classOf[Row])
+//        recoveredSeq(rowNumber) = row
+//        //uncomment this to se recovered row
+//        //LOG.info(recoveredSeq(rowNumber).toString())
+//        rowNumber += 1
+//      }
+//      )
+//    }
+//    )
+//  }
 
 }
