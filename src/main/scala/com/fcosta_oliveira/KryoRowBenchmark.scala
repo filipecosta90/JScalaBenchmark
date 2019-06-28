@@ -40,7 +40,7 @@ class KryoRowBenchmark {
   @Param(Array("4194304"))
   var buffersize: Int = _
   // blockSize
-  @Param(Array("10"))
+  @Param(Array("1000"))
   var blockSize: Int = _
   private var data: String = null
 

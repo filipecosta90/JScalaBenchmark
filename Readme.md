@@ -15,15 +15,21 @@ mvn clean package
 
 
 ## Kryo Array[Row] New Serializer 
-See Recorded profile in FlightRecordingProfiles/NEW_SERIALIZER_com.fcosta_oliveira.KryoRowBenchmark.testDefaultSerializerSingleOutput-0.jfr
-## 5 repetitions of 60 seconds Test with 50K Rows, 400 columns, column size of 36 Bytes, 1 Threads, with an heap size of 8G
+See Recorded profile in FlightRecordingProfiles/*, specifically:
+
+- com.fcosta_oliveira.KryoRowBenchmark.testRowSerializer_Read_Safe-0.jfr
+- com.fcosta_oliveira.KryoRowBenchmark.testRowSerializer_Read_UnSafe-1.jfr
+- com.fcosta_oliveira.KryoRowBenchmark.testRowSerializer_Write_Safe-2.jfr
+- com.fcosta_oliveira.KryoRowBenchmark.testRowSerializer_Write_Unsafe-3.jfr
+
+### 5 repetitions of 60 seconds Test with 100K Rows, 400 columns, column size of 36 Bytes, 1 Threads, with an heap size of 8G
 ```console
 java -jar target/benchmarks.jar "KryoRowBenchmark"  -i 5 -wi 0 -f 1 -t 1 -jvmArgs="-Xms8G -Xmx8G -XX:+UnlockCommercialFeatures" -prof=profilers.FlightRecordingProfiler -bm=thrpt
 ```
 
 ```console
 (...)
-# Run complete. Total time: 00:05:03
+# Run complete. Total time: 00:20:48
 
 REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
 why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
@@ -31,13 +37,19 @@ experiments, perform baseline and negative tests that provide experimental contr
 the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
 Do not assume the numbers tell you what you want them to tell.
 
-Benchmark                                               (blockSize)  (buffersize)  (colsize)  (ncols)   Mode  Cnt    Score    Error   Units
-KryoRowBenchmark.testDefaultSerializerSingleOutput             1000             1         36      400  thrpt    5  101.944 ± 11.136  ops/ms
-KryoRowBenchmark.testDefaultSerializerSingleOutput:JFR         1000             1         36      400  thrpt           NaN              N/A
+Benchmark                                            (blockSize)  (buffersize)  (colsize)  (ncols)   Mode  Cnt      Score      Error   Units
+KryoRowBenchmark.testRowSerializer_Read_Safe                1000       4194304         36      400  thrpt    5  50685.842 ± 8135.802  ops/ms
+KryoRowBenchmark.testRowSerializer_Read_Safe:JFR            1000       4194304         36      400  thrpt             NaN                N/A
+KryoRowBenchmark.testRowSerializer_Read_UnSafe              1000       4194304         36      400  thrpt    5  51534.835 ± 5078.821  ops/ms
+KryoRowBenchmark.testRowSerializer_Read_UnSafe:JFR          1000       4194304         36      400  thrpt             NaN                N/A
+KryoRowBenchmark.testRowSerializer_Write_Safe               1000       4194304         36      400  thrpt    5     58.914 ±    5.930  ops/ms
+KryoRowBenchmark.testRowSerializer_Write_Safe:JFR           1000       4194304         36      400  thrpt             NaN                N/A
+KryoRowBenchmark.testRowSerializer_Write_Unsafe             1000       4194304         36      400  thrpt    5     58.282 ±    8.218  ops/ms
+KryoRowBenchmark.testRowSerializer_Write_Unsafe:JFR         1000       4194304         36      400  thrpt             NaN                N/A
 ```
 
 ## Kryo Array[Row] Old Serializer 
-## 5 repetitions of 60 seconds Test with 50K Rows, 400 columns, column size of 36 Bytes, 1 Threads, with an heap size of 8G
+### 5 repetitions of 60 seconds Test with 50K Rows, 400 columns, column size of 36 Bytes, 1 Threads, with an heap size of 8G
 ```console
 java -jar target/benchmarks.jar "KryoRowBenchmark"  -i 5 -wi 0 -f 1 -t 1 -jvmArgs="-Xms8G -Xmx8G"
 ```
@@ -71,7 +83,7 @@ KryoRowBenchmark.testDefaultSerializerSingleOutput              1000            
 
 
 ## Kryo Seq[Array[String]] 
-## 5 repetitions of 60 seconds Test with 100K Rows, 400 columns, column size of 36 Bytes, 1 Threads, with an heap size of 8G
+### 5 repetitions of 60 seconds Test with 100K Rows, 400 columns, column size of 36 Bytes, 1 Threads, with an heap size of 8G
 ```console
 java -jar target/benchmarks.jar "KryoBenchmark"  -i 5 -wi 0 -f 1 -t 1 -jvmArgs="-Xms8G -Xmx8G"
 ```
